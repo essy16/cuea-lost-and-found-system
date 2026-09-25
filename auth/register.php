@@ -1,0 +1,22 @@
+<?php
+require_once __DIR__.'/../config/db.php'; require_once __DIR__.'/../includes/functions.php';
+if(isPost()){
+    $name=trim($_POST['name']??'');$email=trim($_POST['email']??'');$phone=trim($_POST['phone']??'');$gender=trim($_POST['gender']??'');$address=trim($_POST['physical_address']??'');$idNo=trim($_POST['id_passport_no']??'');$pass=$_POST['password']??'';
+    $category=trim($_POST['account_category']??'');$regNo=trim($_POST['reg_no']??'');
+    if(!in_array($category,['student','visitor'],true)){flash('error','Please select Student or Visitor.');redirect(appUrl('auth/register.php'));}
+    if($category==='student'&&!$regNo){flash('error','Registration number is required for student accounts.');redirect(appUrl('auth/register.php'));}
+    if($pass!==($_POST['confirm_password']??'')){flash('error','Passwords do not match.');redirect(appUrl('auth/register.php'));}
+    if(!$name||!$email||!$phone||!$gender||!$address||!$pass){flash('error','Please complete all required registration fields.');redirect(appUrl('auth/register.php'));}
+    $c=$pdo->prepare('SELECT id FROM users WHERE email=?');$c->execute([$email]);if($c->fetch()){flash('error','An account with that email already exists.');redirect(appUrl('auth/register.php'));}
+    if($category==='student'){$c=$pdo->prepare("SELECT id FROM users WHERE reg_no=? AND reg_no IS NOT NULL LIMIT 1");$c->execute([$regNo]);if($c->fetch()){flash('error','That registration number is already linked to another account.');redirect(appUrl('auth/register.php'));}}
+    $s=$pdo->prepare("INSERT INTO users(name,email,reg_no,staff_no,phone,gender,physical_address,id_passport_no,role,password,can_report_items,can_issue_items) VALUES(:name,:email,:reg,NULL,:phone,:gender,:address,:idno,:role,:pass,0,0)");
+    $s->execute(['name'=>$name,'email'=>$email,'reg'=>$category==='student'?$regNo:null,'phone'=>$phone,'gender'=>$gender,'address'=>$address,'idno'=>$idNo?:null,'role'=>$category,'pass'=>password_hash($pass,PASSWORD_DEFAULT)]);
+    $newId=(int)$pdo->lastInsertId();
+    logActivity($pdo,$category,$newId,$name,'Created user account',ucfirst($category).' account registered.','user',$newId);
+    flash('success','Account created successfully. Please login.');redirect(appUrl('auth/login.php'));
+}
+require_once __DIR__.'/../includes/header.php';?>
+<div class="card auth-shell"><h2>Create User Account</h2><p class="small">Choose whether you are a CUEA student or a visitor. Student accounts require a registration number.</p><?php if($m=flash('error')):?><div class="alert error"><?php echo e($m);?></div><?php endif;?>
+<form method="POST"><label>Full name</label><input name="name" required><label>Category</label><select name="account_category" id="accountCategory" required><option value="">Select category</option><option value="student">Student</option><option value="visitor">Visitor</option></select><div id="regBox" style="display:none"><label>Registration number</label><input name="reg_no" id="regNo"><span class="small">Required for students only.</span></div><div class="form-grid"><div><label>Email</label><input type="email" name="email" required></div><div><label>Phone number</label><input name="phone" required></div></div><div class="form-grid"><div><label>Gender</label><select name="gender" required><option value="">Select gender</option><option>Female</option><option>Male</option><option>Other</option><option>Prefer not to say</option></select></div><div><label>ID / Passport <span class="small">(optional)</span></label><input name="id_passport_no"></div></div><label>Physical address</label><textarea name="physical_address" required></textarea><div class="form-grid"><div><label>Password</label><input type="password" name="password" required></div><div><label>Confirm password</label><input type="password" name="confirm_password" required></div></div><button class="btn">Create Account</button></form></div>
+<script>const ac=document.getElementById('accountCategory'),rb=document.getElementById('regBox'),rn=document.getElementById('regNo');function toggleReg(){const isStudent=ac.value==='student';rb.style.display=isStudent?'block':'none';rn.required=isStudent;if(!isStudent)rn.value='';}ac.addEventListener('change',toggleReg);toggleReg();</script>
+<?php require_once __DIR__.'/../includes/footer.php';?>

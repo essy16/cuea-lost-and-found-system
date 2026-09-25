@@ -1,0 +1,6 @@
+document.addEventListener('DOMContentLoaded',()=>{
+ const t=document.querySelector('[data-menu-toggle]'),n=document.querySelector('[data-nav]'); if(t&&n)t.addEventListener('click',()=>n.classList.toggle('is-open'));
+ document.querySelectorAll('[data-validate]').forEach(form=>form.addEventListener('submit',e=>{let ok=true;form.querySelectorAll('[required]').forEach(f=>{f.classList.remove('field-error');if(!(f.value||'').trim()){f.classList.add('field-error');ok=false;}});const p=form.querySelector('[name=password]'),c=form.querySelector('[name=confirm_password]');if(p&&c&&p.value!==c.value){p.classList.add('field-error');c.classList.add('field-error');ok=false;}if(!ok){e.preventDefault();alert('Please complete all required fields correctly.');}}));
+ const cat=document.querySelector('[data-category]'),box=document.querySelector('[data-electronics]'); if(cat&&box){const sync=()=>{box.hidden=!['Electronics','Phone','Laptop'].includes(cat.value)};cat.addEventListener('change',sync);sync();}
+ const params=new URLSearchParams(location.search),type=params.get('type'),sel=document.querySelector('select[name=item_type]');if(sel&&['lost','found'].includes(type))sel.value=type;
+});
